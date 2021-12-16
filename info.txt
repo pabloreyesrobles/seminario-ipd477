@@ -1,0 +1,34 @@
+Info.Rname = N2001A01AP51;   Info.Rsegs = 1;        Info.Rsigs = 1;
+Info.rate  = 23437.5;  Info.Rcfr  = [];       Info.Rbcnt = 0;
+Info.Rsps  = 262124;   Info.Rbtm  = '0:0:0';  Info.Rbdt  = [];
+Info.startTime=0;
+
+Info.chan(1).fileName = N2001A01AP51.bin;       Info.chan(1).format = 16;
+Info.chan(1).info.Spf = 1;        Info.chan(1).info.Skew = [];
+Info.chan(1).info.ByteOff = 20;    Info.chan(1).info.ADCgain = 13.1070;
+Info.chan(1).info.Baseline = uV;  Info.chan(1).Units = [];
+Info.chan(1).info.ADCres = [];    Info.chan(1).info.ADCzero = 0;
+Info.chan(1).info.InitVal = [];   Info.chan(1).info.Checksum = [];
+Info.chan(1).info.Block = [];     Info.chan(1).info.Desc = [];
+
+chan(i).name= 'record N2001A01AP51.bin, signal 0';
+chan(i).rate= 23437.5;
+chan(i).start = 0;
+chan(i).gain= 13.1070;
+chan(i).units= 'uV';
+chan(i).length = (len(.bin) - 20) / 2;
+
+databytes = (len(.bin) - Byteoff);  len = databytes / 2
+
+S.rate = 23437.5
+S.start = 0
+S.duration = (len(.bin) - 20) / 2 / S.rate
+
+EMG.nchannels = 1
+EMG.duration = S.duration
+EMG.Source = S
+EMG.rate = S.rate
+EMG.start = 0
+EMG.data = 1
+
+CURR.chan = 1
