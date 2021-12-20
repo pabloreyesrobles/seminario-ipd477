@@ -161,7 +161,7 @@ num_threads = int(os.cpu_count() / 2)
 with warnings.catch_warnings():
   warnings.filterwarnings('ignore')
   with Pool(num_threads) as pool:
-    pop_feat = list(tqdm(pool.imap(get_features, s_paths[:2]), total=len(s_paths[:2])))
+    pop_feat = list(tqdm(pool.imap(get_features, s_paths), total=len(s_paths)))
 
 df = pd.DataFrame(pop_feat)
 df['class'] = classes
