@@ -159,16 +159,19 @@ def get_features(path):
 num_threads = int(os.cpu_count() / 2)
 pop_feat = []
 
-with warnings.catch_warnings():
-  warnings.filterwarnings('ignore')
-  for s in tqdm(s_paths):
-    pop_feat.append(get_features(s))
+if __name__ == "__main__":
 
-  # with Pool(num_threads) as pool:
-  #   pop_feat = list(tqdm(pool.imap(get_features, s_paths), total=len(s_paths)))
+  with warnings.catch_warnings():
+    warnings.filterwarnings('ignore')
+    # for s in tqdm(s_paths):
+    #   pop_feat.append(get_features(s))
 
-df = pd.DataFrame(pop_feat)
-df['class'] = classes
-df['subject'] = names
+    pool = Pool(num_threads)
+    pop_feat = list(tqdm(pool.imap(get_features, s_paths), total=len(s_paths)))
+    pool.close()
 
-df.to_csv('features.csv')
+  df = pd.DataFrame(pop_feat)
+  df['class'] = classes
+  df['subject'] = names
+
+  df.to_csv('features.csv')
