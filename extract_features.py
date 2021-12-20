@@ -156,7 +156,7 @@ def get_features(path):
 
   return features
 
-num_threads = os.cpu_count() / 2
+num_threads = int(os.cpu_count() / 2)
 
 with warnings.catch_warnings():
   warnings.filterwarnings('ignore')
