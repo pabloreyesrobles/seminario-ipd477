@@ -12,19 +12,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from multiprocessing import Pool
 from tqdm import tqdm
 
-names = []
-classes = []
-s_paths = []
-
-for group in os.listdir(f'../N2001/'):
-  for muscle in os.listdir(f'../N2001/{group:s}'):
-    for subject in os.listdir(f'../N2001/{group:s}/{muscle:s}'):
-      # print(f'../N2001/{group:s}/{muscle:s}/{subject:s}/{subject:s}.bin')
-
-      names.append(subject)
-      classes.append(group)
-      s_paths.append(f'../N2001/{group:s}/{muscle:s}/{subject:s}/{subject:s}.bin')
-
 # Features extractor. 103 per signal
 def get_features(path):
   with open(path, 'rb') as f:
@@ -125,23 +112,23 @@ def get_features(path):
   ppsd_map = np.array([0, 3, 7])
 
   for i, imf in enumerate(mIMFs):
-      # no queda claro en el paper. Revisar cálculo de amplitud, fase y frecuencia
-      # ver https://ccrma.stanford.edu/~jos/st/Analytic_Signals_Hilbert_Transform.html
-      analytic_sig = signal.hilbert(imf)
-      amps = np.abs(analytic_sig)
-      phases = np.angle(analytic_sig)
-      
-      freqs = np.zeros_like(phases)
-      freqs[1:] = np.diff(phases)
-      
-      psd = freqs ** 2 / (2 * np.pi)
-      
-      mif[i] = np.sum(freqs * amps ** 2) / np.sum(amps ** 2)
-      mfd[i] = np.sum(np.diff(freqs)) / (freqs.shape[0])
-      smpds[i] = np.sum(np.arange(1, psd.shape[0] + 1) * psd)
-      amb[i] = np.sum(np.diff(amps ** 2)) / np.sum(psd[:-1]) # así sale en el paper (?)
-      fmb[i] = np.sum((freqs - mif[i]) * amps ** 2) / np.sum(psd)
-      ppsd[i] = np.max(psd)
+    # no queda claro en el paper. Revisar cálculo de amplitud, fase y frecuencia
+    # ver https://ccrma.stanford.edu/~jos/st/Analytic_Signals_Hilbert_Transform.html
+    analytic_sig = signal.hilbert(imf)
+    amps = np.abs(analytic_sig)
+    phases = np.angle(analytic_sig)
+    
+    freqs = np.zeros_like(phases)
+    freqs[1:] = np.diff(phases)
+    
+    psd = freqs ** 2 / (2 * np.pi)
+    
+    mif[i] = np.sum(freqs * amps ** 2) / np.sum(amps ** 2)
+    mfd[i] = np.sum(np.diff(freqs)) / (freqs.shape[0])
+    smpds[i] = np.sum(np.arange(1, psd.shape[0] + 1) * psd)
+    amb[i] = np.sum(np.diff(amps ** 2)) / np.sum(psd[:-1]) # así sale en el paper (?)
+    fmb[i] = np.sum((freqs - mif[i]) * amps ** 2) / np.sum(psd)
+    ppsd[i] = np.max(psd)
       
   mif = mif[mif_map]
   mfd = mfd[mfd_map]
@@ -160,15 +147,26 @@ num_threads = int(os.cpu_count() / 2)
 pop_feat = []
 
 if __name__ == "__main__":
+  names = []
+  classes = []
+  s_paths = []
 
-  with warnings.catch_warnings():
-    warnings.filterwarnings('ignore')
+  for group in os.listdir(f'../N2001/'):
+    for muscle in os.listdir(f'../N2001/{group:s}'):
+      for subject in os.listdir(f'../N2001/{group:s}/{muscle:s}'):
+        # print(f'../N2001/{group:s}/{muscle:s}/{subject:s}/{subject:s}.bin')
+
+        names.append(subject)
+        classes.append(group)
+        s_paths.append(f'../N2001/{group:s}/{muscle:s}/{subject:s}/{subject:s}.bin')
+        
+  # with warnings.catch_warnings():
+  #   warnings.filterwarnings('ignore')
     # for s in tqdm(s_paths):
     #   pop_feat.append(get_features(s))
 
-    pool = Pool(num_threads)
-    pop_feat = list(tqdm(pool.imap(get_features, s_paths), total=len(s_paths)))
-    pool.close()
+  with Pool(num_threads) as pool:
+    pop_feat = list(tqdm(pool.imap(get_features, s_paths), total=len(s_paths)))  
 
   df = pd.DataFrame(pop_feat)
   df['class'] = classes
