@@ -1,0 +1,7 @@
+EMD-signal==1.2.0
+numpy==1.20.0
+PyWavelets==1.2.0
+statsmodels==0.12.2
+scikit-learn==0.24.2
+scipy==1.7.0
+tqdm==4.62.0
