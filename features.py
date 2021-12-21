@@ -6,8 +6,32 @@ from scipy import signal
 from PyEMD import EEMD, EMD
 from statsmodels.tsa.arima.model import ARIMA
 
+# Time features mapping
+zc_map = np.array([0, 1, 2, 5, 6, 7, 8, 9, 10, 11])
+ssc_map = np.array([0, 1, 4, 5])
+
+ar_map = {0: np.array([0, 1, 3]),
+          1: np.array([1, 2]),
+          2: np.array([2]),
+          3: np.array([3]),
+          4: np.array([4]),
+          6: np.array([0]),
+          7: np.array([1]),
+          8: np.array([2]),
+          12: np.array([0])}
+
+# Freq features mapping
+amb_map = np.arange(5)
+fmb_map = np.arange(4)
+smpds_map = np.array([0, 1, 2, 3, 4, 7])
+mfd_map = np.array([3, 4])
+mif_map = np.array([0, 1, 2, 3, 5])
+ppsd_map = np.array([0, 3, 7])
+
 # Features extractor. 103 per signal
-def get_features(path):
+def get_features(args):
+
+  path = f'{args[1]:s}/{args[0]:s}.bin'
   with open(path, 'rb') as f:
     data = f.read()
 
@@ -54,28 +78,6 @@ def get_features(path):
   mIMFs = np.mean(np.split(IMFs[:-1, :-q], 10, axis=1), axis=0)
   mt = np.split(t[:-q], 10)[0]
 
-  # Time features mapping
-  zc_map = np.array([0, 1, 2, 5, 6, 7, 8, 9, 10, 11])
-  ssc_map = np.array([0, 1, 4, 5])
-
-  ar_map = {0: np.array([0, 1, 3]),
-            1: np.array([1, 2]),
-            2: np.array([2]),
-            3: np.array([3]),
-            4: np.array([4]),
-            6: np.array([0]),
-            7: np.array([1]),
-            8: np.array([2]),
-            12: np.array([0])}
-  
-  # Freq features mapping
-  amb_map = np.arange(5)
-  fmb_map = np.arange(4)
-  smpds_map = np.array([0, 1, 2, 3, 4, 7])
-  mfd_map = np.array([3, 4])
-  mif_map = np.array([0, 1, 2, 3, 5])
-  ppsd_map = np.array([0, 3, 7])
-
   try:
     wl = np.sum(np.abs(np.diff(mIMFs)), axis=1)
     zc = np.sum(np.abs(np.diff(np.sign(mIMFs), axis=1)) == 2, axis=1)[zc_map]
@@ -99,7 +101,7 @@ def get_features(path):
     mav = np.mean(np.abs(mIMFs), axis=1)
     iav = np.sum(np.abs(mIMFs), axis=1)
 
-    f_feat = np.concatenate([wl, zc, ssc, rms, ar, mav, iav])
+    t_feat = np.concatenate([wl, zc, ssc, rms, ar, mav, iav])
 
     # Freq - hilbert features
     analytic_sig = np.zeros_like(mIMFs, dtype=np.complex64)
@@ -137,12 +139,12 @@ def get_features(path):
     fmb = fmb[fmb_map]
     ppsd = ppsd[ppsd_map]
 
-    t_feat = np.concatenate([mif, mfd, smpds, amb, fmb, ppsd])
+    f_feat = np.concatenate([mif, mfd, smpds, amb, fmb, ppsd])
+    features = np.concatenate([t_feat, f_feat])
   
   except:
     features = np.empty(103)[:] = np.nan
-    return features
-
-  features = np.concatenate([f_feat, t_feat])
+  
+  np.save(f'{args[1]:s}/{args[0]:s}.npy', features)
 
   return features
