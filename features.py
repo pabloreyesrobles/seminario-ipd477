@@ -13,6 +13,10 @@ def get_features(path):
   arr = np.array(list(data), dtype=np.uint8)[20:]
   data = np.array(struct.unpack('h' * int(arr.shape[0] / 2), arr.tobytes()))
 
+  if data.shape[0] != 262134:
+    features = np.empty(103)[:] = np.nan
+    return features
+
   sr = 23437.5
   t = np.linspace(0, data.shape[0] / sr, data.shape[0], endpoint=False)
 
@@ -76,7 +80,7 @@ def get_features(path):
       continue
     else:
       try:
-        _ar = ARIMA(imf, order=[6, 0, 0]).fit().polynomial_ar[1:][ar_map[i]]
+        _ar = ARIMA(imf, order=[6, 0, 0]).fit(method='yule_walker').polynomial_ar[1:][ar_map[i]]
       except:
         _ar = np.zeros(6)[ar_map[i]]
       ar.append(_ar)
