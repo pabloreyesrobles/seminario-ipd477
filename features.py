@@ -30,10 +30,12 @@ mif_map = np.array([0, 1, 2, 3, 5])
 ppsd_map = np.array([0, 3, 7])
 
 # Features extractor. 103 per signal
+# args[0]: signal name
+# args[1]: signal path
+# args[2]: preload
 def get_features(args):
-  
   path = f'{args[1]:s}/{args[0]:s}.npy'
-  if os.path.isfile(path):
+  if os.path.isfile(path) and args[2] == True:
     features = np.load(path)
     if features.shape == (103,): return features
 
@@ -85,36 +87,35 @@ def get_features(args):
 
   # mean IMFs
   mIMFs = np.mean(np.split(IMFs[:-1, :-q], 10, axis=1), axis=0)
-  mt = np.split(t[:-q], 10)[0]
+  split_IMFs = np.array(np.split(IMFs[:-1, :-q], 10, axis=1))
 
   try:
-    wl = np.sum(np.abs(np.diff(mIMFs)), axis=1)
-    zc = np.sum(np.abs(np.diff(np.sign(mIMFs), axis=1)) == 2, axis=1)[zc_map]
-    ssc = np.sum(np.abs(np.diff(np.sign(np.diff(mIMFs, axis=1)), axis=1)) == 2, axis=1)[ssc_map]
-    rms = np.sqrt(np.mean(mIMFs ** 2, axis=1))
+    wl = np.mean(np.sum(np.abs(np.diff(split_IMFs)), axis=2), axis=0)
+    zc = np.mean(np.sum(np.abs(np.diff(np.sign(split_IMFs))) == 2, axis=2), axis=0)[zc_map]
+    ssc = np.mean(np.sum(np.abs(np.diff(np.sign(np.diff(split_IMFs)))) == 2, axis=2), axis=0)[ssc_map]
+    rms = np.mean(np.sqrt(np.mean(split_IMFs ** 2, axis=2)), axis=0)
+
+    mav = np.mean(np.mean(np.abs(split_IMFs), axis=2), axis=0)
+    iav = np.mean(np.sum(np.abs(split_IMFs), axis=2), axis=0)
 
     ar = []
-    for i, imf in enumerate(mIMFs):
-      # print(f'Running imf_{i+1:d}:')
-      if i not in ar_map:
-        # print('\tskipping')
-        continue
-      else:
-        try:
-          _ar = ARIMA(imf, order=[6, 0, 0]).fit(method='yule_walker').polynomial_ar[1:][ar_map[i]]
-        except:
-          _ar = np.zeros(6)[ar_map[i]]
-        ar.append(_ar)
+    for i in range(nIMFs):
+        if i not in ar_map:
+          continue
+        
+        i_ar = []
+        for imf in split_IMFs[:, i]:
+          try:
+            _ar = ARIMA(imf, order=[6, 0, 0]).fit(method='yule_walker').polynomial_ar[1:][ar_map[i]]
+          except:
+            _ar = np.zeros(6)[ar_map[i]]
+          i_ar.append(_ar)        
+        ar.append(np.mean(np.array(i_ar), axis=0)) 
     ar = np.concatenate(ar)
         
-    mav = np.mean(np.abs(mIMFs), axis=1)
-    iav = np.sum(np.abs(mIMFs), axis=1)
-
     t_feat = np.concatenate([wl, zc, ssc, rms, ar, mav, iav])
 
     # Freq - hilbert features
-    analytic_sig = np.zeros_like(mIMFs, dtype=np.complex64)
-
     mif = np.zeros(nIMFs)
     mfd = np.zeros(nIMFs)
     smpds = np.zeros(nIMFs)
@@ -122,25 +123,44 @@ def get_features(args):
     fmb = np.zeros(nIMFs)
     ppsd = np.zeros(nIMFs)
 
-    for i, imf in enumerate(mIMFs):
+    amb_map = np.arange(5)
+    fmb_map = np.arange(4)
+    smpds_map = np.array([0, 1, 2, 3, 4, 7])
+    mfd_map = np.array([3, 4])
+    mif_map = np.array([0, 1, 2, 3, 5])
+    ppsd_map = np.array([0, 3, 7])
+
+    for i in range(nIMFs):
       # no queda claro en el paper. Revisar cálculo de amplitud, fase y frecuencia
       # ver https://ccrma.stanford.edu/~jos/st/Analytic_Signals_Hilbert_Transform.html
-      analytic_sig = signal.hilbert(imf)
-      amps = np.abs(analytic_sig)
-      phases = np.angle(analytic_sig)
-      
-      freqs = np.zeros_like(phases)
-      freqs[1:] = np.diff(phases)
-      
-      psd = freqs ** 2 / (2 * np.pi)
-      
-      mif[i] = np.sum(freqs * amps ** 2) / np.sum(amps ** 2)
-      mfd[i] = np.sum(np.diff(freqs)) / (freqs.shape[0])
-      smpds[i] = np.sum(np.arange(1, psd.shape[0] + 1) * psd)
-      amb[i] = np.sum(np.diff(amps ** 2)) / np.sum(psd[:-1]) # así sale en el paper (?)
-      fmb[i] = np.sum((freqs - mif[i]) * amps ** 2) / np.sum(psd)
-      ppsd[i] = np.max(psd)
-        
+
+      # IMF split params
+      t_params = np.zeros([10, 6])
+      for j, imf in enumerate(split_IMFs[:, i]):
+        analytic_sig = signal.hilbert(imf)
+        amps = np.abs(analytic_sig)
+        phases = np.angle(analytic_sig)
+
+        freqs = np.zeros_like(phases)
+        freqs[1:] = np.diff(phases)
+
+        psd = freqs ** 2 / (2 * np.pi)
+
+        t_params[j, 0] = np.sum(freqs * amps ** 2) / np.sum(amps ** 2) # mif 
+        t_params[j, 1] = np.sum(np.diff(freqs)) / (freqs.shape[0]) # mfd 
+        t_params[j, 2] = np.sum(np.arange(1, psd.shape[0] + 1) * psd) # smpds 
+        t_params[j, 3] = np.sum(np.diff(amps ** 2)) / np.sum(psd[:-1]) # amb, así sale en el paper
+        t_params[j, 4] = np.sum((freqs - t_params[j, 0]) * amps ** 2) / np.sum(psd) # fmb 
+        t_params[j, 5] = np.max(psd) # ppsd
+
+      t_means = np.mean(t_params, axis=0)
+      mif[i] = t_means[0]
+      mfd[i] = t_means[1]
+      smpds[i] = t_means[2]
+      amb[i] = t_means[3]
+      fmb[i] = t_means[4]
+      ppsd[i] = t_means[5]
+
     mif = mif[mif_map]
     mfd = mfd[mfd_map]
     smpds = smpds[smpds_map]
