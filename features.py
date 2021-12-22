@@ -1,9 +1,10 @@
-from logging import raiseExceptions
 import numpy as np
 import struct
 import pywt
+import os
+
 from scipy import signal
-from PyEMD import EEMD, EMD
+from PyEMD import EMD
 from statsmodels.tsa.arima.model import ARIMA
 
 # Time features mapping
@@ -30,6 +31,11 @@ ppsd_map = np.array([0, 3, 7])
 
 # Features extractor. 103 per signal
 def get_features(args):
+  
+  path = f'{args[1]:s}/{args[0]:s}.npy'
+  if os.path.isfile(path):
+    features = np.load(path)
+    if features.shape == (103,): return features
 
   path = f'{args[1]:s}/{args[0]:s}.bin'
   with open(path, 'rb') as f:
@@ -39,7 +45,10 @@ def get_features(args):
   data = np.array(struct.unpack('h' * int(arr.shape[0] / 2), arr.tobytes()))
 
   if data.shape[0] != 262134:
-    features = np.empty(103)[:] = np.nan
+    features = np.empty(103)
+    features[:] = np.nan
+    np.save(f'{args[1]:s}/{args[0]:s}.npy', features)
+
     return features
 
   sr = 23437.5
@@ -143,7 +152,8 @@ def get_features(args):
     features = np.concatenate([t_feat, f_feat])
   
   except:
-    features = np.empty(103)[:] = np.nan
+    features = np.empty(103)
+    features[:] = np.nan
   
   np.save(f'{args[1]:s}/{args[0]:s}.npy', features)
 
