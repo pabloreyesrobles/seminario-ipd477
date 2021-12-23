@@ -7,6 +7,7 @@ import argparse
 from multiprocessing import Pool
 from tqdm import tqdm
 from features import *
+from datetime import datetime
 
 if __name__ == "__main__":
   
@@ -81,4 +82,8 @@ if __name__ == "__main__":
     cols = list(df.columns)
     df = df[cols[-4:] + cols[:-4]]
 
-  df.to_csv('test_features.csv')
+
+  now = datetime.now() 
+  fname = now.strftime("output/exp_%d%m%y-%H:%M:%S.csv")
+  df.to_csv(fname)
+  print(f'Results stored in {fname:s}')
