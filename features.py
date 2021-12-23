@@ -32,13 +32,13 @@ ppsd_map = np.array([0, 3, 7])
 def split_features(split_IMFs, nIMFs):
 
   try:
-    wl = np.mean(np.sum(np.abs(np.diff(split_IMFs)), axis=2), axis=0)
-    zc = np.mean(np.sum(np.abs(np.diff(np.sign(split_IMFs))) == 2, axis=2), axis=0)[zc_map]
-    ssc = np.mean(np.sum(np.abs(np.diff(np.sign(np.diff(split_IMFs)))) == 2, axis=2), axis=0)[ssc_map]
-    rms = np.mean(np.sqrt(np.mean(split_IMFs ** 2, axis=2)), axis=0)
+    wl = np.sum(np.abs(np.diff(split_IMFs)), axis=2)
+    zc = np.sum(np.abs(np.diff(np.sign(split_IMFs))) == 2, axis=2)[:, zc_map]
+    ssc = np.sum(np.abs(np.diff(np.sign(np.diff(split_IMFs)))) == 2, axis=2)[:, ssc_map]
+    rms = np.sqrt(np.mean(split_IMFs ** 2, axis=2))
 
-    mav = np.mean(np.mean(np.abs(split_IMFs), axis=2), axis=0)
-    iav = np.mean(np.sum(np.abs(split_IMFs), axis=2), axis=0)
+    mav = np.mean(np.abs(split_IMFs), axis=2)
+    iav = np.sum(np.abs(split_IMFs), axis=2)
 
     ar = []
     for i in range(nIMFs):
@@ -52,18 +52,18 @@ def split_features(split_IMFs, nIMFs):
           except:
             _ar = np.zeros(6)[ar_map[i]]
           i_ar.append(_ar)        
-        ar.append(np.mean(np.array(i_ar), axis=0)) 
-    ar = np.concatenate(ar)
+        ar.append(np.array(i_ar)) 
+    ar = np.concatenate(ar, axis=1)
         
-    t_feat = np.concatenate([wl, zc, ssc, rms, ar, mav, iav])
+    t_feat = np.concatenate([wl, zc, ssc, rms, ar, mav, iav], axis=1)
 
     # Freq - hilbert features
-    mif = np.zeros(nIMFs)
-    mfd = np.zeros(nIMFs)
-    smpds = np.zeros(nIMFs)
-    amb = np.zeros(nIMFs)
-    fmb = np.zeros(nIMFs)
-    ppsd = np.zeros(nIMFs)
+    mif = np.zeros([10, nIMFs])
+    mfd = np.zeros([10, nIMFs])
+    smpds = np.zeros([10, nIMFs])
+    amb = np.zeros([10, nIMFs])
+    fmb = np.zeros([10, nIMFs])
+    ppsd = np.zeros([10, nIMFs])
 
     amb_map = np.arange(5)
     fmb_map = np.arange(4)
@@ -95,26 +95,25 @@ def split_features(split_IMFs, nIMFs):
         t_params[j, 4] = np.sum((freqs - t_params[j, 0]) * amps ** 2) / np.sum(psd) # fmb 
         t_params[j, 5] = np.max(psd) # ppsd
 
-      t_means = np.mean(t_params, axis=0)
-      mif[i] = t_means[0]
-      mfd[i] = t_means[1]
-      smpds[i] = t_means[2]
-      amb[i] = t_means[3]
-      fmb[i] = t_means[4]
-      ppsd[i] = t_means[5]
+      mif[:, i] = t_params[:, 0]
+      mfd[:, i] = t_params[:, 1]
+      smpds[:, i] = t_params[:, 2]
+      amb[:, i] = t_params[:, 3]
+      fmb[:, i] = t_params[:, 4]
+      ppsd[:, i] = t_params[:, 5]
 
-    mif = mif[mif_map]
-    mfd = mfd[mfd_map]
-    smpds = smpds[smpds_map]
-    amb = amb[amb_map]
-    fmb = fmb[fmb_map]
-    ppsd = ppsd[ppsd_map]
+    mif = mif[:, mif_map]
+    mfd = mfd[:, mfd_map]
+    smpds = smpds[:, smpds_map]
+    amb = amb[:, amb_map]
+    fmb = fmb[:, fmb_map]
+    ppsd = ppsd[:, ppsd_map]
 
-    f_feat = np.concatenate([mif, mfd, smpds, amb, fmb, ppsd])
-    features = np.concatenate([t_feat, f_feat])
+    f_feat = np.concatenate([mif, mfd, smpds, amb, fmb, ppsd], axis=1)
+    features = np.concatenate([t_feat, f_feat], axis=1)
   
   except:
-    features = np.empty(103)
+    features = np.empty([10, 103])
     features[:] = np.nan
 
   return features
@@ -195,10 +194,12 @@ def mean_features(mIMFs, nIMFs):
 # args[2]: preload
 # args[3]: mean_imfs
 def get_features(args):
+  
   path = f'{args[1]:s}/{args[0]:s}.npy'
   if os.path.isfile(path) and args[2] == True:
     features = np.load(path)
-    if features.shape == (103,): return features
+    if features.shape == (103,) or features.shape == (10, 103):
+      return features
 
   path = f'{args[1]:s}/{args[0]:s}.bin'
   with open(path, 'rb') as f:
@@ -209,7 +210,9 @@ def get_features(args):
   data = data / 10 # according to papers values. It is not specified
 
   if data.shape[0] != 262134:
-    features = np.empty(103)
+    if args[3]: features = np.empty(103)
+    else: features = np.empty(10, 103)
+
     features[:] = np.nan
     np.save(f'{args[1]:s}/{args[0]:s}.npy', features)
 
