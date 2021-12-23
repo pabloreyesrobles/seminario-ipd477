@@ -46,7 +46,7 @@ if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     with Pool(num_threads) as pool:
       args = [(name, path, preload, mean_imfs) for name, path in zip(names, paths)]
-      pop_feat = list(tqdm(pool.imap(get_features, args[:3]), total=len(args[:3])))
+      pop_feat = list(tqdm(pool.imap(get_features, args), total=len(args)))
 
       if mean_imfs: df = pd.DataFrame(np.array(pop_feat))
       else: df = pd.DataFrame(np.concatenate(pop_feat, axis=0))
@@ -67,21 +67,20 @@ if __name__ == "__main__":
   df.columns = columns
 
   if mean_imfs:
-    df['class'] = classes[:3]
-    df['subject'] = names[:3]
-    df['muscles'] = muscles[:3]
+    df['class'] = classes
+    df['subject'] = names
+    df['muscles'] = muscles
 
     cols = list(df.columns)
     df = df[cols[-3:] + cols[:-3]]
   else:
-    df['class'] = s_classes[:30]
-    df['subject'] = s_names[:30]
-    df['muscles'] = s_muscles[:30]
-    df['slice'] = slices[:30]
+    df['class'] = s_classes
+    df['subject'] = s_names
+    df['muscles'] = s_muscles
+    df['slice'] = slices
     
     cols = list(df.columns)
     df = df[cols[-4:] + cols[:-4]]
-
 
   now = datetime.now() 
   fname = now.strftime("output/exp_%d%m%y-%H:%M:%S.csv")
