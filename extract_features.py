@@ -39,7 +39,7 @@ if __name__ == "__main__":
         paths.append(f'../N2001/{group:s}/{muscle:s}/{subject:s}')
 
   num_threads = int(os.cpu_count() / 2)
-  preload = False
+  preload = True
   mean_imfs = 0
 
   with warnings.catch_warnings():

@@ -194,7 +194,7 @@ def mean_features(mIMFs, nIMFs):
 # args[2]: preload
 # args[3]: mean_imfs
 def get_features(args):
-  
+
   path = f'{args[1]:s}/{args[0]:s}.npy'
   if os.path.isfile(path) and args[2] == True:
     features = np.load(path)
@@ -211,7 +211,7 @@ def get_features(args):
 
   if data.shape[0] != 262134:
     if args[3]: features = np.empty(103)
-    else: features = np.empty(10, 103)
+    else: features = np.empty([10, 103])
 
     features[:] = np.nan
     np.save(f'{args[1]:s}/{args[0]:s}.npy', features)
