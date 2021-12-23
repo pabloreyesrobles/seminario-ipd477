@@ -34,7 +34,7 @@ if __name__ == "__main__":
     warnings.filterwarnings('ignore')
     with Pool(num_threads) as pool:
       args = [(name, path, preload, mean_imfs) for name, path in zip(names, s_paths)]
-      pop_feat = np.array(list(tqdm(pool.imap(get_features, args[:3]), total=len(args[:3]))))
+      pop_feat = np.array(list(tqdm(pool.imap(get_features, args), total=len(args))))
       df = pd.DataFrame(pop_feat)
   
   columns = [f'WL_imf{i:d}' for i in range(1, 14)] + \
@@ -52,9 +52,9 @@ if __name__ == "__main__":
             [f'PPSD_imf{i+1:d}' for i in ppsd_map]
   df.columns = columns
 
-  df['class'] = classes[:3]
-  df['subject'] = names[:3]
-  df['muscles'] = muscles[:3]
+  df['class'] = classes
+  df['subject'] = names
+  df['muscles'] = muscles
 
   cols = list(df.columns)
   df = df[cols[-3:] + cols[:-3]]
