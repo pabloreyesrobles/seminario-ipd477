@@ -221,7 +221,7 @@ def get_features(args):
   sr = 23437.5
   t = np.linspace(0, data.shape[0] / sr, data.shape[0], endpoint=False)
 
-  b_notch, a_notch = signal.iirnotch(60.0, 30.0, sr)
+  b_notch, a_notch = signal.iirnotch(50.0, 30.0, sr)
   data_notched = signal.filtfilt(b_notch, a_notch, data)
 
   b, a = signal.butter(3, 30, 'hp', fs=sr)
